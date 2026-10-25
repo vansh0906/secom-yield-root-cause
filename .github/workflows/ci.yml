@@ -1,0 +1,25 @@
+name: analysis
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python tests.py
+      - name: Pipeline recovers planted causes on the look-alike dataset
+        run: python synth.py data_synthetic && python run_all.py --data data_synthetic --boot 20
+      - name: Real SECOM data
+        continue-on-error: true          # depends on the UCI site being up
+        run: python get_data.py && python run_all.py | tee results.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: results
+          path: |
+            results.txt
+            results.png
+            report.md
+            doe.png

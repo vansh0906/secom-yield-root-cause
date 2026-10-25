@@ -1,0 +1,39 @@
+Design: 2^4 full factorial, 2 replicates, 4 centre points = 36 runs in random order
+
+[etch rate]  residual sd 6.07 nm/min on 21 degrees of freedom
+  term     effect         p  significant  true effect
+  A       +111.37   1.2e-23          yes  +110.0
+  B        +44.50   1.8e-15          yes  +44.0
+  C        +28.21   1.3e-11          yes  +28.0
+  D         +0.47   8.3e-01               +0.0
+  AB       +24.04   2.6e-10          yes  +24.0
+  AC        +2.07   3.5e-01               +0.0
+  AD        -2.98   1.8e-01               +0.0
+  BC        +1.03   6.4e-01               +0.0
+  BD        -2.35   2.9e-01               +0.0
+  CD        -2.40   2.8e-01               +0.0
+  curvature (centre points vs factorial mean): +8.15 nm/min, p = 1.9e-02  -> curvature present, a 2-level model is only valid near the corners
+
+[non-uniformity]  residual sd 0.22 % on 21 degrees of freedom
+  term     effect         p  significant  true effect
+  A         +1.78   3.2e-16          yes  +1.8
+  B         -1.41   3.7e-14          yes  -1.4
+  C         -0.01   9.0e-01               +0.0
+  D         +0.63   8.5e-08          yes  +0.6
+  AB        +0.12   1.3e-01               +0.0
+  AC        +1.19   9.0e-13          yes  +1.2
+  AD        +0.11   1.8e-01               +0.0
+  BC        +0.07   4.0e-01               +0.0
+  BD        +0.02   7.7e-01               +0.0
+  CD        +0.03   7.5e-01               +0.0
+  curvature (centre points vs factorial mean): +0.08 %, p = 4.9e-01
+
+[Optimum]  etch rate within 420 +/- 5 nm/min, lowest predicted non-uniformity
+  power 450 W, pressure 60 mTorr, CF4 56 sccm, temperature 20 C
+  predicted: etch rate 417.0 nm/min, non-uniformity 3.20 %
+  5 confirmation runs: etch rate 417.0 +/- 5.5, non-uniformity 3.30 +/- 0.31 %
+  vs. the centre-point recipe: non-uniformity 3.92 % -> 3.30 %
+
+  significant terms found: rate ['A', 'AB', 'B', 'C'], non-uniformity ['A', 'AC', 'B', 'D']
+  true terms:              rate ['A', 'AB', 'B', 'C'], non-uniformity ['A', 'AC', 'B', 'D']
+saved doe.png

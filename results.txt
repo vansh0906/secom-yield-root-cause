@@ -1,0 +1,56 @@
+[1  Data] 1567 wafers, 590 measurements, 19 Jul 2008 to 17 Oct 2008
+  fails: 104 (6.6 %), yield 93.4 %
+  4.5 % of all values missing; dropped 28 features over 50 % missing and 116 that never change; 446 features kept
+  weekly fail rate ranges 1.1-20.8 % (worst week starting 28 Jul, 48 wafers)
+
+[2  Screening every feature: fails vs. passes]
+  Mann-Whitney U test per feature, Benjamini-Hochberg false-discovery rate across 446 tests
+  raw p < 0.05: 86 features (about 22 expected by chance alone); q < 0.10 after correction: 44
+  feature          p       q    AUC  fails run  missing
+  F059      5.68e-11   0.000  0.692       high     0.4%
+  F103      9.55e-09   0.000  0.668       high     0.1%
+  F247      1.07e-06   0.000  0.675       high    45.6%
+  F519      1.19e-06   0.000  0.674       high    45.6%
+  F510      3.45e-06   0.000  0.636       high     0.1%
+  F477      3.50e-05   0.003  0.621       high     0.4%
+  F205      4.72e-05   0.003  0.619       high     0.4%
+  F129      4.83e-05   0.003  0.619       high     0.6%
+  F028      6.96e-05   0.003  0.383        low     0.1%
+  F033      1.61e-04   0.007  0.611       high     0.1%
+
+[3  SPC: I-MR charts, limits from the first 30 % of production, Western Electric rules 1-3]
+  feature   out of control  fail rate when OOC  fail rate in control
+  F059              87.4 %               3.5 %                 9.5 %
+  F103              66.1 %               3.6 %                 5.4 %
+  F247              12.9 %               4.8 %                 3.5 %
+  F519              14.1 %               4.3 %                 3.6 %
+  F510              57.3 %               4.0 %                 4.5 %
+  F477              36.1 %               3.8 %                 4.4 %
+  F205              30.0 %               4.3 %                 4.2 %
+  F129              58.4 %               3.8 %                 4.8 %
+  F028              63.2 %               3.9 %                 4.7 %
+  F033              28.5 %               6.1 %                 3.4 %
+
+[4  Predicting fails: train on the first 70 % of production, test on the last 30 %]
+  train 1096 wafers (78 fails), test 471 wafers (26 fails); a random guess scores PR-AUC 0.055
+  L1 logistic regression   ROC-AUC 0.530  PR-AUC 0.070  fails caught when flagging the top 10 % of wafers: 15 %
+  random forest            ROC-AUC 0.569  PR-AUC 0.069  fails caught when flagging the top 10 % of wafers: 12 %
+  permutation importance (L1 logistic regression, drop in PR-AUC when a feature is shuffled): F129 +0.014, F279 +0.006, F090 +0.005, F510 +0.003, F117 +0.003, F460 +0.003
+  L1 selection stability over 50 bootstrap resamples: F059 100 %, F280 94 %, F129 92 %, F064 90 %, F460 86 %, F563 80 %
+
+[5  Suspects: flagged by at least two of: screening q < 0.05, L1 picked in >= 50 % of bootstraps, permutation importance >= 10 % of the top]
+  F129: screening, stable L1, permutation; fails run high (median 0 vs -0.1419), AUC 0.619
+  F059: screening, stable L1; fails run high (median 5.522 vs 0.7223), AUC 0.692
+  F510: screening, permutation; fails run high (median 58.23 vs 46.38), AUC 0.636
+  F033: screening, stable L1; fails run high (median 8.894 vs 8.766), AUC 0.611
+  F316: screening, permutation; fails run low (median 5.531 vs 5.862), AUC 0.391
+  F021: screening, stable L1; fails run high (median -5447 vs -5529), AUC 0.603
+  F460: stable L1, permutation; fails run high (median 27.76 vs 26.08), AUC 0.576
+  F279: stable L1, permutation; fails run low (median 0.03385 vs 0.0373), AUC 0.430
+  F090: stable L1, permutation; fails run low (median 8746 vs 8836), AUC 0.437
+  F117: stable L1, permutation; fails run low (median 58.46 vs 58.55), AUC 0.445
+  F486: stable L1, permutation; fails run high (median 267.8 vs 249), AUC 0.542
+  independent suspects after grouping correlated sensors: F129, F059, F510, F033, F316, F021, F460, F279, F090, F117, F486
+
+wrote report.md
+saved results.png
