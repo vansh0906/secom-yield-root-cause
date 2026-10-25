@@ -4,9 +4,9 @@
 
 ## In plain words
 
-Out of 446 measurements, **11** independent ones stand out by more than one method: **F129** (fails run high), **F059** (fails run high), **F510** (fails run high), **F033** (fails run high), **F316** (fails run low), **F021** (fails run high), **F460** (fails run high), **F279** (fails run low), **F090** (fails run low), **F117** (fails run low), **F486** (fails run high). These are the parameters to check first in the tool logs and maintenance records for the affected period. This is statistical evidence, not proof of cause; a controlled experiment (DOE) on the suspected parameters would confirm it.
+Out of 446 measurements, **7** independent ones stand out in the pass/fail screening: **F059** (fails run high), **F103** (fails run high), **F247** (fails run high), **F477** (fails run high), **F129** (fails run high), **F028** (fails run low), **F033** (fails run high). 3 more move together with these and are probably the same causes seen by another sensor. These are the parameters to check first in the tool logs and maintenance records for the affected period. This is statistical evidence, not proof of cause; a controlled experiment (DOE) on the suspected parameters would confirm it.
 
-A model trained on the first 70 % of production and tested on the last 30 % ranks wafers so that flagging the top 10 % catches **15 %** of fails (L1 logistic regression, PR-AUC 0.070 vs 0.055 for chance).
+A model trained on the first 70 % of production and tested on the last 30 % ranks wafers so that flagging the top 10 % catches **15 %** of fails (L1 logistic regression, PR-AUC 0.070 vs 0.055 for chance). That is close to chance: the patterns behind early failures did not carry forward, and the SPC charts show the process moving after the baseline period. Re-baselining the control limits and monitoring the suspects going forward is the practical next step.
 
 ## Top features by pass/fail screening
 

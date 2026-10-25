@@ -55,6 +55,13 @@ for c in top:
         fo = "-" if pd.isna(r.fail_rate_ooc) else f"{100 * r.fail_rate_ooc:.1f} %"
         print(f"  {c:8s} {100 * r.ooc_rate:13.1f} % {fo:>19s} {100 * r.fail_rate_in:19.1f} %")
 
+drifted = [c for c in top if c in P.index and P.loc[c, "ooc_rate"] > 0.25]
+if drifted:
+    print(f"  {len(drifted)} of the top {len(top)} are out of control on more than 25 % of later wafers: the process moved away "
+          "from its baseline after the first 30 % of production")
+early, late = y.iloc[: int(0.3 * len(y))].mean(), y.iloc[int(0.3 * len(y)):].mean()
+print(f"  fail rate in the baseline period {100 * early:.1f} % vs. after it {100 * late:.1f} %")
+
 print("\n[4  Predicting fails: train on the first 70 % of production, test on the last 30 %]")
 cut = int(0.7 * len(y))
 Xtr, Xte, ytr, yte = X[cols].iloc[:cut], X[cols].iloc[cut:], y.iloc[:cut], y.iloc[cut:]
@@ -74,16 +81,28 @@ sel = A.bootstrap_selection(Xtr, ytr, cols, n_boot=args.boot)
 print(f"  L1 selection stability over {args.boot} bootstrap resamples: "
       + ", ".join(f"{c} {100 * v:.0f} %" for c, v in sel.head(6).items()))
 
-print("\n[5  Suspects: flagged by at least two of: screening q < 0.05, L1 picked in >= 50 % of bootstraps, permutation importance >= 10 % of the top]")
+best = res[best_name]
+skilful = best["pr_auc"] >= 1.5 * yte.mean() and best["roc_auc"] >= 0.6
+if not skilful:
+    print(f"  the models barely beat chance on later wafers (best ROC-AUC {best['roc_auc']:.2f}, PR-AUC {best['pr_auc']:.3f} "
+          f"vs {yte.mean():.3f}): pass/fail patterns from early production do not carry forward, so the model-based "
+          "rankings are not used as evidence below")
+
+if skilful:
+    print("\n[5  Suspects: flagged by at least two of: screening q < 0.05, L1 picked in >= 50 % of bootstraps, permutation importance >= 10 % of the top]")
+else:
+    print("\n[5  Suspects: screening only (q < 0.05, top 10 by p), because the models had no forward skill]")
 votes = {}
-for c in S[S["q"] < 0.05]["feature"].head(20):                 # significant after FDR correction
+for c in S[S["q"] < 0.05]["feature"].head(20 if skilful else 10):   # significant after FDR correction
     votes.setdefault(c, []).append("screening")
-for c in sel[sel >= 0.5].index:                                   # picked in at least half the bootstraps
-    votes.setdefault(c, []).append("stable L1")
-for c, v in imp.items():                                          # at least 10 % of the top importance
-    if v > 0 and v >= 0.1 * imp.max():
-        votes.setdefault(c, []).append("permutation")
-suspects = sorted([c for c, v in votes.items() if len(v) >= 2], key=lambda c: (-len(votes[c]), S.set_index("feature").loc[c, "p"] if c in set(S["feature"]) else 1))
+if skilful:
+    for c in sel[sel >= 0.5].index:                               # picked in at least half the bootstraps
+        votes.setdefault(c, []).append("stable L1")
+    for c, v in imp.items():                                      # at least 10 % of the top importance
+        if v > 0 and v >= 0.1 * imp.max():
+            votes.setdefault(c, []).append("permutation")
+need = 2 if skilful else 1
+suspects = sorted([c for c, v in votes.items() if len(v) >= need], key=lambda c: (-len(votes[c]), S.set_index("feature").loc[c, "p"] if c in set(S["feature"]) else 1))
 St = S.set_index("feature")
 rho = X[suspects].corr(method="spearman") if suspects else None
 proxy = {}
@@ -98,7 +117,7 @@ for k, c in enumerate(suspects):
 primary = [c for c in suspects if c not in proxy]
 print(f"  independent suspects after grouping correlated sensors: {', '.join(primary) if primary else 'none'}")
 if not suspects:
-    print("  none: no feature was flagged by two methods")
+    print("  none: no feature met the rule")
 
 FAILED = False
 planted = Path(args.data) / "planted.json"
@@ -115,14 +134,18 @@ lines = [f"# SECOM yield root-cause report", "",
          f"{cs['kept']} of {cs['features']} measurements usable after removing {cs['too_missing']} mostly-missing and {cs['constant']} constant ones.", "",
          "## In plain words", ""]
 if primary:
-    lines += [f"Out of {len(S)} measurements, **{len(primary)}** independent ones stand out by more than one method: "
+    lines += [f"Out of {len(S)} measurements, **{len(primary)}** independent ones stand out "
+              + ("by more than one method: " if skilful else "in the pass/fail screening: ")
               + ", ".join(f"**{c}** (fails run {St.loc[c, 'fails_run']})" for c in primary) + ". "
               + (f"{len(proxy)} more move together with these and are probably the same causes seen by another sensor. " if proxy else "")
               + 
               "These are the parameters to check first in the tool logs and maintenance records for the affected period. "
               "This is statistical evidence, not proof of cause; a controlled experiment (DOE) on the suspected parameters would confirm it.", ""]
 lines += [f"A model trained on the first 70 % of production and tested on the last 30 % ranks wafers so that flagging the top 10 % "
-          f"catches **{100 * res[best_name]['recall_at_10']:.0f} %** of fails ({best_name}, PR-AUC {res[best_name]['pr_auc']:.3f} vs {yte.mean():.3f} for chance).", "",
+          f"catches **{100 * res[best_name]['recall_at_10']:.0f} %** of fails ({best_name}, PR-AUC {res[best_name]['pr_auc']:.3f} vs {yte.mean():.3f} for chance)."
+          + ("" if skilful else " That is close to chance: the patterns behind early failures did not carry forward"
+             + (", and the SPC charts show the process moving after the baseline period. Re-baselining the control limits and "
+                "monitoring the suspects going forward is the practical next step." if drifted else ".")), "",
           "## Top features by pass/fail screening", "", "| Feature | p | q (FDR) | AUC | Fails run |", "|---|---|---|---|---|"]
 lines += [f"| {r.feature} | {r.p:.2e} | {r.q:.3f} | {r.auc:.3f} | {r.fails_run} |" for _, r in S.head(10).iterrows()]
 Path("report.md").write_text("\n".join(lines) + "\n")
